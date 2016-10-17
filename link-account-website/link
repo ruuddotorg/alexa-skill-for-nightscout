@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Nightscout</title>
+    </head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <style type="text/css">
+        body { font-family: "-apple-system"; background: #eee; margin-top: 24px }
+        #card { width: 300px; background: white; margin: auto; padding: 8px }
+        #url { font-size: large; }
+        #link { font-size: large; }
+        #error { display: none; }
+    </style>
+    <script type="text/javascript">
+        // https://davidwalsh.name/query-string-javascript
+        function query_parameter(name) {
+            name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+            var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+            var results = regex.exec(location.search);
+            return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+        }
+
+        function redirect(token) {
+            var redirect_uri = query_parameter("redirect_uri");
+            var state = query_parameter("state");
+            if (!redirect_uri || !state) {
+                error();
+            } else {
+                var url = redirect_uri + "#state=" + encodeURIComponent(state) + "&access_token=" + encodeURIComponent(token) + "&token_type=Bearer";
+                window.location = url;
+            }
+        }
+
+        function load() {
+            response = JSON.parse(this.responseText);
+            if (!!response.token) {
+                redirect(response.token);
+            } else {
+                error();
+            }
+        }
+
+        function error() {
+            console.log("error");
+            document.getElementById("url").disabled = false;
+            document.getElementById("link").disabled = false;
+            document.getElementById("error").style.display = "block";
+        }
+
+        function submit() {
+            document.getElementById("url").disabled = true;
+            document.getElementById("link").disabled = true;
+
+            var url = document.getElementById("url").value;
+
+            var request = new XMLHttpRequest();
+            request.addEventListener("load", load);
+            request.addEventListener("error", error);
+            request.open("GET", "https://eqtxz9nqc3.execute-api.us-east-1.amazonaws.com/prod/nightscout-url-token?url=" + encodeURIComponent(url))
+            request.send();
+
+            return false;
+        }
+
+        window.onload = function() {
+            document.getElementById("url").focus();
+        }
+    </script>
+    <body>
+        <div id="card">
+            <p>To use this skill, you need to have a Nightscout server. Please visit <a href="http://www.nightscout.info/">the Nightscout website</a> for more information.</p>
+            <p>All information provided is intended for informational and educational purposes only. Use Nightscout at your own risk, and do not use the information to make medical decisions.</p>
+            <p>To link your Nightscout site, please enter its URL below:</p>
+            <form onsubmit="return window.submit()">
+                <input id="url" name="url" type="url" size="27" placeholder="myt1dscgmsite.azurewebsites.net">
+                <button id="link">Link</button>
+            </form>
+            <p id="error">&#9888;&#65039; The URL provided is invalid, or the Nightscout server version is not compatible with this skill. Please doublecheck the URL and try again.</p>
+        </div>
+    </body>
+</html>

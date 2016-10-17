@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Privacy policy | Alexa skill for Nightscout</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1">
+        <style type="text/css">
+            body { font-family: "-apple-system"; background: #eee; }
+            #content { margin: 24px; padding: 8px; background: white; }
+        </style>
+    </head>
+    </body>
+        <div id="content">
+            <p>The Alexa skill for Nightscout is written by Ruud de Rooij and
+            is not endorsed by the Nightscout Foundation. Please refer to
+            <a href="http://www.nightscout.info">nightscout.info</a> and
+            <a href="http://www.nightscoutfoundation.org">nightscoutfoundation.org</a>
+            for more information about Nightscout and the Nightscout
+            Foundation.</p>
+
+            <p>All information provided is intended for informational and
+            educational purposes only. Use Nightscout at your own risk, and do
+            not use the information to make medical decisions.</p>
+
+            <p>The skill collects the following information:</p>
+
+            <ol>
+                <li>Upon initial activation, the address of a Nightscout server
+                is collected.</li>
+
+                <li>At the user's request, information from the server
+                specified in item 1 is retrieved and presented to the
+                user.</li>
+            </ol>
+
+            <p>Other than outlined above, no information is collected or shared
+            with any parties, unless required by law.</p>
+        </div>
+    </body>
+</html>

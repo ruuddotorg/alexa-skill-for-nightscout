@@ -1,0 +1,3 @@
+GetValue the latest value
+GetValue the blood glucose
+GetValue what is the value
