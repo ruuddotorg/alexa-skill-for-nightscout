@@ -1,7 +1,7 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: API for constructing Alexa access token based on Nightscout server URL.
 Parameters:
-    Path:
+    ApiName:
         Type: String
         Default: nightscout-url-token
     Stage:
@@ -101,11 +101,12 @@ Resources:
         Type: AWS::ApiGateway::RestApi
         Properties:
             Description: API for constructing Alexa access token based on Nightscout server URL.
+            Name: !Ref ApiName
     ApiResource:
         Type: AWS::ApiGateway::Resource
         Properties:
             ParentId: !GetAtt [RestApi, RootResourceId]
-            PathPart: !Ref Path
+            PathPart: !Ref ApiName
             RestApiId: !Ref RestApi
     ApiMethod:
         Type: AWS::ApiGateway::Method
@@ -148,4 +149,4 @@ Outputs:
                   - ".amazonaws.com/"
                   - !Ref Stage
                   - "/"
-                  - !Ref Path
+                  - !Ref ApiName
