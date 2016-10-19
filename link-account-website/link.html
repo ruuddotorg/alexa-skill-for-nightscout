@@ -13,6 +13,8 @@
         #error { display: none; }
     </style>
     <script type="text/javascript">
+        var api_url = "https://caeg8rdxq5.execute-api.us-east-1.amazonaws.com/prod/nightscout-url-token";
+
         // https://davidwalsh.name/query-string-javascript
         function query_parameter(name) {
             name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
@@ -32,7 +34,7 @@
             }
         }
 
-        function load() {
+        function request_complete() {
             response = JSON.parse(this.responseText);
             if (!!response.token) {
                 redirect(response.token);
@@ -42,7 +44,6 @@
         }
 
         function error() {
-            console.log("error");
             document.getElementById("url").disabled = false;
             document.getElementById("link").disabled = false;
             document.getElementById("error").style.display = "block";
@@ -55,9 +56,9 @@
             var url = document.getElementById("url").value;
 
             var request = new XMLHttpRequest();
-            request.addEventListener("load", load);
+            request.addEventListener("load", request_complete);
             request.addEventListener("error", error);
-            request.open("GET", "https://eqtxz9nqc3.execute-api.us-east-1.amazonaws.com/prod/nightscout-url-token?url=" + encodeURIComponent(url))
+            request.open("GET", api_url + "?url=" + encodeURIComponent(url))
             request.send();
 
             return false;
@@ -69,14 +70,24 @@
     </script>
     <body>
         <div id="card">
-            <p>To use this skill, you need to have a Nightscout server. Please visit <a href="http://www.nightscout.info/">the Nightscout website</a> for more information.</p>
-            <p>All information provided is intended for informational and educational purposes only. Use Nightscout at your own risk, and do not use the information to make medical decisions.</p>
+            <p>To use this skill, you need to have a Nightscout server. Please
+            visit <a href="http://www.nightscout.info/">the Nightscout
+            website</a> for more information.</p>
+
+            <p>All information provided is intended for informational and
+            educational purposes only. Use Nightscout at your own risk, and do
+            not use the information to make medical decisions.</p>
+
             <p>To link your Nightscout site, please enter its URL below:</p>
+
             <form onsubmit="return window.submit()">
                 <input id="url" name="url" type="url" size="27" placeholder="myt1dscgmsite.azurewebsites.net">
                 <button id="link">Link</button>
             </form>
-            <p id="error">&#9888;&#65039; The URL provided is invalid, or the Nightscout server version is not compatible with this skill. Please doublecheck the URL and try again.</p>
+
+            <p id="error">&#9888;&#65039; The URL provided is invalid, or the
+            Nightscout server version is not compatible with this skill.
+            Please doublecheck the URL and try again.</p>
         </div>
     </body>
 </html>
