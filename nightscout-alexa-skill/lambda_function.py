@@ -42,7 +42,7 @@ def link_account():
     return {
         'outputSpeech': {
             'type': 'PlainText',
-            'text': 'Please use the Alexa app to link your Nightscout server.',
+            'text': 'Information is provided for informational and educational purposes only. Do not use information to make medical decisions. Please use the Alexa app to link your Nightscout server.',
         },
         'card': {
             'type': 'LinkAccount',
