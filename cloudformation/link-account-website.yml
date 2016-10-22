@@ -1,0 +1,236 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Web pages for linking Nightscout server into Alexa account.
+Resources:
+    Bucket:
+        Type: AWS::S3::Bucket
+    BucketPolicy:
+        Type: AWS::S3::BucketPolicy
+        Properties:
+            Bucket: !Ref Bucket
+            PolicyDocument:
+                Statement:
+                  - Action: "s3:GetObject"
+                    Effect: Allow
+                    Resource: !Sub "arn:aws:s3:::${Bucket}/*"
+                    Principal: "*"
+    PutObjectFunction:
+        Type: AWS::Lambda::Function
+        Properties:
+            Code:
+                ZipFile: |
+                    from __future__ import print_function
+                    import botocore.session
+                    import cfnresponse
+                    def lambda_handler(event, context):
+                        client = botocore.session.get_session().create_client('s3')
+                        properties = event['ResourceProperties']
+                        del properties['ServiceToken']
+                        bucket = properties['Bucket']
+                        key = properties['Key']
+                        physical_id = '{}:{}'.format(bucket, key)
+                        for original, replacement in properties.pop('BodyReplacements', {}).items():
+                            properties['Body'] = properties['Body'].replace(original, replacement)
+                        try:
+                            if event['RequestType'] == 'Delete':
+                                client.delete_object(Bucket=bucket, Key=key)
+                            else:
+                                client.put_object(**properties)
+                            status = cfnresponse.SUCCESS
+                        except Exception:
+                            status = cfnresponse.FAILED
+                        cfnresponse.send(event, context, status, {}, physical_id)
+            Description: CloudFormation custom resource for uploading files into S3
+            Handler: index.lambda_handler
+            MemorySize: 128
+            Role: !GetAtt LambdaExecutionRole.Arn
+            Runtime: python2.7
+            Timeout: 3
+    LambdaExecutionRole:
+        Type: AWS::IAM::Role
+        Properties:
+            AssumeRolePolicyDocument:
+                Version: "2012-10-17"
+                Statement:
+                  - Effect: "Allow"
+                    Principal:
+                        Service: "lambda.amazonaws.com"
+                    Action: "sts:AssumeRole" 
+            Path: "/service-role/"
+            Policies:
+              - PolicyName: "logs"
+                PolicyDocument:
+                    Version: "2012-10-17"
+                    Statement:
+                      - Effect: Allow
+                        Action:
+                          - "logs:CreateLogGroup"
+                          - "logs:CreateLogStream"
+                          - "logs:PutLogEvents"
+                        Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*"
+              - PolicyName: "s3"
+                PolicyDocument:
+                    Version: "2012-10-17"
+                    Statement:
+                      - Effect: Allow
+                        Action:
+                          - "s3:DeleteObject"
+                          - "s3:PutObject"
+                        Resource: !Sub "arn:aws:s3:::${Bucket}/*"
+    LinkPage:
+        Type: AWS::CloudFormation::CustomResource
+        Properties:
+            ServiceToken: !GetAtt PutObjectFunction.Arn
+            Bucket: !Ref Bucket
+            Key: link
+            ContentType: text/html
+            BodyReplacements:
+                "@API_URL@": !ImportValue nightscout-url-token:ApiUrl
+            Body: |
+                <!DOCTYPE html>
+                <html>
+                    <head>
+                        <title>Nightscout</title>
+                    </head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width,initial-scale=1">
+                    <style type="text/css">
+                        body { font-family: "-apple-system"; background: #eee; margin-top: 24px }
+                        #card { width: 300px; background: white; margin: auto; padding: 8px }
+                        #url { font-size: large; }
+                        #link { font-size: large; }
+                        #error { display: none; }
+                    </style>
+                    <script type="text/javascript">
+                        var api_url = "@API_URL@";
+
+                        // https://davidwalsh.name/query-string-javascript
+                        function query_parameter(name) {
+                            name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+                            var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+                            var results = regex.exec(location.search);
+                            return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+                        }
+
+                        function redirect(token) {
+                            var redirect_uri = query_parameter("redirect_uri");
+                            var state = query_parameter("state");
+                            if (!redirect_uri || !state) {
+                                error();
+                            } else {
+                                var url = redirect_uri + "#state=" + encodeURIComponent(state) + "&access_token=" + encodeURIComponent(token) + "&token_type=Bearer";
+                                window.location = url;
+                            }
+                        }
+
+                        function request_complete() {
+                            response = JSON.parse(this.responseText);
+                            if (!!response.token) {
+                                redirect(response.token);
+                            } else {
+                                error();
+                            }
+                        }
+
+                        function error() {
+                            document.getElementById("url").disabled = false;
+                            document.getElementById("link").disabled = false;
+                            document.getElementById("error").style.display = "block";
+                        }
+
+                        function submit() {
+                            document.getElementById("url").disabled = true;
+                            document.getElementById("link").disabled = true;
+
+                            var url = document.getElementById("url").value;
+
+                            var request = new XMLHttpRequest();
+                            request.addEventListener("load", request_complete);
+                            request.addEventListener("error", error);
+                            request.open("GET", api_url + "?url=" + encodeURIComponent(url))
+                            request.send();
+
+                            return false;
+                        }
+
+                        window.onload = function() {
+                            document.getElementById("url").focus();
+                        }
+                    </script>
+                    <body>
+                        <div id="card">
+                            <p>To use this skill, you need to have a Nightscout server. Please
+                            visit <a href="http://www.nightscout.info/">the Nightscout
+                            website</a> for more information.</p>
+
+                            <p>All information provided is intended for informational and
+                            educational purposes only. Use Nightscout at your own risk, and do
+                            not use the information to make medical decisions.</p>
+
+                            <p>To link your Nightscout site, please enter its URL below:</p>
+
+                            <form onsubmit="return window.submit()">
+                                <input id="url" name="url" type="url" size="27" placeholder="myt1dscgmsite.azurewebsites.net">
+                                <button id="link">Link</button>
+                            </form>
+
+                            <p id="error">&#9888;&#65039; The URL provided is invalid, or the
+                            Nightscout server version is not compatible with this skill.
+                            Please doublecheck the URL and try again.</p>
+                        </div>
+                    </body>
+                </html>
+    PrivacyPage:
+        Type: AWS::CloudFormation::CustomResource
+        Properties:
+            ServiceToken: !GetAtt PutObjectFunction.Arn
+            Bucket: !Ref Bucket
+            Key: privacy
+            ContentType: text/html
+            Body: |
+                <!DOCTYPE html>
+                <html>
+                    <head>
+                        <title>Privacy policy | Alexa skill for Nightscout</title>
+                        <meta charset="UTF-8">
+                        <meta name="viewport" content="width=device-width,initial-scale=1">
+                        <style type="text/css">
+                            body { font-family: "-apple-system"; background: #eee; }
+                            #content { margin: 24px; padding: 8px; background: white; }
+                        </style>
+                    </head>
+                    </body>
+                        <div id="content">
+                            <p>The Alexa skill for Nightscout is written by Ruud de Rooij and
+                            is not endorsed by the Nightscout Foundation. Please refer to
+                            <a href="http://www.nightscout.info">nightscout.info</a> and
+                            <a href="http://www.nightscoutfoundation.org">nightscoutfoundation.org</a>
+                            for more information about Nightscout and the Nightscout
+                            Foundation.</p>
+
+                            <p>All information provided is intended for informational and
+                            educational purposes only. Use Nightscout at your own risk, and do
+                            not use the information to make medical decisions.</p>
+
+                            <p>The skill collects the following information:</p>
+
+                            <ol>
+                                <li>Upon initial activation, the address of a Nightscout server
+                                is collected.</li>
+
+                                <li>At the user's request, information from the server
+                                specified in item 1 is retrieved and presented to the
+                                user.</li>
+                            </ol>
+
+                            <p>Other than outlined above, no information is collected or shared
+                            with any parties, unless required by law.</p>
+                        </div>
+                    </body>
+                </html>
+Outputs:
+    LinkUrl:
+        Value:
+            "Fn::Sub": "https://${Bucket}.s3.amazonaws.com/link"
+    PrivacyUrl:
+        Value:
+            "Fn::Sub": "https://${Bucket}.s3.amazonaws.com/privacy"
