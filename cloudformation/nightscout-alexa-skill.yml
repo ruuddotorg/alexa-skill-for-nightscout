@@ -5,7 +5,7 @@ Resources:
         Type: AWS::Lambda::Function
         Properties:
             Code:
-                ZipFile: |
+                ZipFile: | #file ../nightscout-alexa-skill/lambda_function.py
                     from __future__ import print_function
 
                     import base64

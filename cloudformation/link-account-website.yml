@@ -85,7 +85,7 @@ Resources:
             ContentType: text/html
             BodyReplacements:
                 "@API_URL@": !ImportValue nightscout-url-token:ApiUrl
-            Body: |
+            Body: | #file ../link-account-website/link.html
                 <!DOCTYPE html>
                 <html>
                     <head>
@@ -186,7 +186,7 @@ Resources:
             Bucket: !Ref Bucket
             Key: privacy
             ContentType: text/html
-            Body: |
+            Body: | #file ../link-account-website/privacy.html
                 <!DOCTYPE html>
                 <html>
                     <head>
