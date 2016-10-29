@@ -13,10 +13,10 @@ def get_bg_sentence(nightscout_url):
     time_ago = int((float(now) - float(bg['datetime'])) / 60000.0)
     bg_value = bg['sgv']
 
-    if time_ago < 0:
-        time_period = 'in the future'
-    elif time_ago <= 1:
-        time_period = 'a minute ago'
+    if time_ago <= 0:
+        time_period = 'Just now'
+    elif time_ago == 1:
+        time_period = 'One minute ago'
     else:
         time_period = '{} minutes ago'.format(time_ago)
 
@@ -31,9 +31,11 @@ def get_bg_sentence(nightscout_url):
     }
     trend_string = trend_map.get(bg['trend'])
 
-    sentence = '{} the value was {}'.format(time_period, bg_value)
+    sentence = '{}, the value was {}'.format(time_period, bg_value)
     if trend_string is not None:
         sentence += ' and {}'.format(trend_string)
+
+    sentence += '.'
 
     return sentence
 
